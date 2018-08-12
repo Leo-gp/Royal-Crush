@@ -3,12 +3,12 @@ using System.Collections;
 
 public class GamePiece : MonoBehaviour 
 {
-	public int xIndex;
-	public int yIndex;
+    [HideInInspector] public int xIndex;
+    [HideInInspector] public int yIndex;
 
 	Board m_board;
 
-	bool m_isMoving = false;
+    bool m_isMoving = false;
 
 	public Type type;
 
@@ -18,7 +18,6 @@ public class GamePiece : MonoBehaviour
 		Blue,
 		Green,
 		Brown,
-		Black
 	}
 
 	public void Init(Board board)
@@ -26,7 +25,7 @@ public class GamePiece : MonoBehaviour
 		m_board = board;
 	}
 
-	public void SetCoord(int x, int y)
+    public void SetCoord(int x, int y)
 	{
 		xIndex = x;
 		yIndex = y;

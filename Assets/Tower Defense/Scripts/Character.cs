@@ -5,6 +5,7 @@ using UnityEngine.UI;
 
 public class Character : MonoBehaviour 
 {
+    public string charName;
 	public float maxHealth;
 	public float health;
 	public float strength;
@@ -15,46 +16,41 @@ public class Character : MonoBehaviour
 	public GamePiece.Type type;
 	public BoxCollider2D bodyCollider;
 	public BoxCollider2D rangeCollider;
-
 	public Slider healthBar;
+    public AudioSource attackSound;
+
+	[HideInInspector] public bool dead;
+	[HideInInspector] public List<GameObject> targets;
+	[HideInInspector] public GameObject target;
+	[HideInInspector] public Animator animator;
+    [HideInInspector] public SpriteRenderer spriteRend;
+    [HideInInspector] public Color spriteDefaultColor;
 
 	private bool facingRight;
 	private bool moving;
 	private bool attackCoroutineIsActive;
-	[HideInInspector] public bool dead;
-	[HideInInspector] public List<GameObject> targets;
-	[HideInInspector] public GameObject target;
-
 	private Rigidbody2D rb2d;
-	[HideInInspector] public Animator animator;
-
-	public static Character instance;
 
 	void Awake ()
 	{
-		instance = this;
 		targets = new List<GameObject> ();
 		rb2d = GetComponent<Rigidbody2D> ();
 		animator = GetComponent<Animator> ();
+        spriteRend = GetComponent<SpriteRenderer> ();
 	}
 
 	void Start () 
 	{
 		health = maxHealth;
-
 		rangeCollider.size = new Vector2 (attackRange.x * 3, attackRange.y * 3);
-
 		facingRight = true;
-
+		moving = true;
 		if (this.tag == "Player 2")
-		{
 			Flip ();
-		}
-
-		Move ();
+        spriteDefaultColor = spriteRend.color;
 	}
 
-	void Update ()
+	void FixedUpdate ()
 	{
 		if (moving)
 			Move ();
@@ -100,11 +96,11 @@ public class Character : MonoBehaviour
 
 		if (facingRight)
 		{
-			rb2d.velocity = new Vector2(moveSpeed, rb2d.velocity.y) * Time.deltaTime;
+			rb2d.velocity = new Vector2(moveSpeed, rb2d.velocity.y);
 		}
 		else
 		{
-			rb2d.velocity = new Vector2(-moveSpeed, rb2d.velocity.y) * Time.deltaTime;
+			rb2d.velocity = new Vector2(-moveSpeed, rb2d.velocity.y);
 		}
 
 		animator.SetFloat("Speed", Mathf.Abs (rb2d.velocity.x));
@@ -132,7 +128,8 @@ public class Character : MonoBehaviour
 				
 				yield return new WaitForSeconds (1f / attackSpeed / 2);
 				
-				Damage (enemyChar);
+                attackSound.Play();
+				StartCoroutine(Damage (enemyChar));
 				
 				yield return new WaitForSeconds (1f / attackSpeed / 2);
 			}
@@ -162,9 +159,10 @@ public class Character : MonoBehaviour
 
 				yield return new WaitForSeconds (1f / attackSpeed / 2);
 
-				Damage (enemyBase);
+                attackSound.Play();
+                StartCoroutine(Damage(enemyBase));
 
-				yield return new WaitForSeconds (1f / attackSpeed / 2);
+                yield return new WaitForSeconds (1f / attackSpeed / 2);
 			}
 		}
 
@@ -179,7 +177,7 @@ public class Character : MonoBehaviour
 		}
 	}
 
-	void Damage (Character enemyChar)
+	IEnumerator Damage (Character enemyChar)
 	{
 		if (enemyChar != null && enemyChar != dead)
 		{
@@ -191,10 +189,14 @@ public class Character : MonoBehaviour
 				enemyChar.dead = true;
 				Kill (enemyChar);
 			}
+
+            enemyChar.spriteRend.color = Color.red;
+            yield return new WaitForSeconds(0.5f);
+            enemyChar.spriteRend.color = enemyChar.spriteDefaultColor;
 		}
 	}
 
-	void Damage (Base enemyBase)
+	IEnumerator Damage (Base enemyBase)
 	{
 		if (enemyBase != null)
 		{
@@ -205,7 +207,11 @@ public class Character : MonoBehaviour
 			{
 				Kill (enemyBase);
 			}
-		}
+
+            enemyBase.spriteRend.color = Color.red;
+            yield return new WaitForSeconds(0.5f);
+            enemyBase.spriteRend.color = enemyBase.spriteDefaultColor;
+        }
 	}
 
 	void Kill (Character enemyChar)
@@ -213,26 +219,20 @@ public class Character : MonoBehaviour
 		if (enemyChar != null)
 		{
 			enemyChar.animator.SetBool ("Dead", true);
-
 			enemyChar.rangeCollider.enabled = false;
 			enemyChar.bodyCollider.enabled = false;
 			enemyChar.healthBar.gameObject.SetActive (false);
-
-			Destroy (enemyChar.gameObject, 2);
+			Destroy (enemyChar.gameObject, 2f);
 		}
 	}
-
+		
 	void Kill (Base enemyBase)
 	{
 		if (enemyBase != null)
 		{
-			enemyBase.bodyCollider.enabled = false;
-			enemyBase.healthBar.gameObject.SetActive (false);
+			enemyBase.gameObject.SetActive(false);
 			enemyBase.destroyed = true;
-
 			GameController.instance.GameOver();
-
-			Destroy (enemyBase.gameObject);
 		}
 	}
 

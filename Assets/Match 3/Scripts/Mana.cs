@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public class Mana : MonoBehaviour 
 {
 	public GamePiece.Type manaType;
+
 	[HideInInspector] public int manaPoints;
 
 	private Slider manaSlider;
@@ -16,10 +17,7 @@ public class Mana : MonoBehaviour
 		manaPoints = 0;
 		manaSlider = GetComponentInParent<Slider> ();
 		manaText = GetComponentInChildren<Text> ();
-
-		UpdateButtonInteractivity ();
 	}
-
 	public void GainMana (float amount)
 	{
 		if (manaSlider.value + amount / 100f < 1f)
@@ -51,26 +49,18 @@ public class Mana : MonoBehaviour
 
 	public static Mana GetMana (GamePiece.Type manaType, Mana[] allManasReference)
 	{
-		Mana targetMana = null;
-
 		foreach (Mana mana in allManasReference) 
 		{
 			if (mana.manaType == manaType)
 			{
-				targetMana = mana;
-				break;
+				return mana;
 			}
-		}
-
-		if (targetMana != null)
-		{
-			return targetMana;
 		}
 
 		return null;
 	}
 
-	void UpdateButtonInteractivity ()
+	public void UpdateButtonInteractivity ()
 	{
 		foreach (Character character in GameController.instance.characters) 
 		{
@@ -78,11 +68,11 @@ public class Mana : MonoBehaviour
 			{
 				if (SpawnManager.instance.CanSpawn(character))
 				{
-					GameObject.Find(character.name).GetComponentInChildren<Button>().interactable = true;
+					GameObject.Find(character.charName).GetComponentInChildren<Button>().interactable = true;
 				}
 				else
 				{
-					GameObject.Find(character.name).GetComponentInChildren<Button>().interactable = false;
+					GameObject.Find(character.charName).GetComponentInChildren<Button>().interactable = false;
 				}
 			}
 		}

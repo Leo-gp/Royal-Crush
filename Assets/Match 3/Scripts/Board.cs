@@ -2,37 +2,42 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine.UI;
 
-public class Board : MonoBehaviour 
+public class Board : MonoBehaviour
 {
 	public int width;
 	public int height;
-
 	public int borderSize;
-
 	public GameObject tilePrefab;
 	public GameObject[] gamePiecePrefabs;
-
 	public float swapTime = 0.5f;
-
-	Tile[,] m_allTiles;
-	GamePiece[,] m_allGamePieces;
-	Mana[] m_allManas;
-
-	[HideInInspector] public Tile m_clickedTile;
-	[HideInInspector] public Tile m_targetTile;
-
-	bool m_playerInputEnabled = true;
-
-	ParticleManager m_particleManager;
-
+	public float collapseTime = 0.15f;
     public int fillYOffset = 10;
     public float fillMoveTime = 0.5f;
-
 	public float manaPerPiece;
+    public AudioSource pieceMoveSound;
+    public AudioSource piecePopSound;
 
-	void Start () 
+    [HideInInspector] public Tile m_clickedTile;
+	[HideInInspector] public Tile m_targetTile;
+	[HideInInspector] public bool m_playerInputEnabled = true;
+
+	private Tile[,] m_allTiles;
+    private GamePiece[,] m_allGamePieces;
+    private Mana[] m_allManas;
+	private ParticleManager m_particleManager;
+
+    public static Board instance;
+
+    void Awake ()
+    {
+        if (instance == null)
+            instance = this;
+        else
+            Destroy(this.gameObject);
+    }
+
+    void Start () 
 	{
 		m_allTiles = new Tile[width,height];
 		m_allGamePieces = new GamePiece[width,height];
@@ -217,37 +222,35 @@ public class Board : MonoBehaviour
 
 	IEnumerator SwitchTilesRoutine(Tile clickedTile, Tile targetTile)
 	{
-		if (m_playerInputEnabled)
+		m_playerInputEnabled = false;
+
+		GamePiece clickedPiece = m_allGamePieces[clickedTile.xIndex,clickedTile.yIndex];
+		GamePiece targetPiece = m_allGamePieces[targetTile.xIndex,targetTile.yIndex];
+
+		if (targetPiece != null && clickedPiece != null)
 		{
-			m_playerInputEnabled = false;
+			clickedPiece.Move(targetTile.xIndex, targetTile.yIndex, swapTime);
+			targetPiece.Move(clickedTile.xIndex, clickedTile.yIndex, swapTime);
 
-			GamePiece clickedPiece = m_allGamePieces[clickedTile.xIndex,clickedTile.yIndex];
-			GamePiece targetPiece = m_allGamePieces[targetTile.xIndex,targetTile.yIndex];
+            pieceMoveSound.Play();
 
-			if (targetPiece !=null && clickedPiece !=null)
-			{
-				clickedPiece.Move(targetTile.xIndex, targetTile.yIndex, swapTime);
-				targetPiece.Move(clickedTile.xIndex, clickedTile.yIndex, swapTime);
-
-				yield return new WaitForSeconds(swapTime);
-
-				List<GamePiece> clickedPieceMatches = FindMatchesAt(clickedTile.xIndex, clickedTile.yIndex);
-				List<GamePiece> targetPieceMatches = FindMatchesAt(targetTile.xIndex, targetTile.yIndex);
-
-				if (targetPieceMatches.Count == 0 && clickedPieceMatches.Count == 0)
-				{
-					clickedPiece.Move(clickedTile.xIndex, clickedTile.yIndex,swapTime);
-					targetPiece.Move(targetTile.xIndex, targetTile.yIndex,swapTime);
-				}
-				else
-				{
-					yield return new WaitForSeconds(swapTime);
-
-					ClearAndRefillBoard(clickedPieceMatches.Union(targetPieceMatches).ToList());
-				}
-			}
 			yield return new WaitForSeconds(swapTime);
-			m_playerInputEnabled = true;
+
+			List<GamePiece> clickedPieceMatches = FindMatchesAt(clickedTile.xIndex, clickedTile.yIndex);
+			List<GamePiece> targetPieceMatches = FindMatchesAt(targetTile.xIndex, targetTile.yIndex);
+
+			if (targetPieceMatches.Count == 0 && clickedPieceMatches.Count == 0)
+			{
+				clickedPiece.Move(clickedTile.xIndex, clickedTile.yIndex,swapTime);
+				targetPiece.Move(targetTile.xIndex, targetTile.yIndex,swapTime);
+		        yield return new WaitForSeconds(swapTime);
+		        m_playerInputEnabled = true;
+			}
+			else
+			{
+				yield return new WaitForSeconds(swapTime);
+				ClearAndRefillBoard(clickedPieceMatches.Union(targetPieceMatches).ToList());
+			}
 		}
 	}
 
@@ -556,8 +559,9 @@ public class Board : MonoBehaviour
 		{
 			ClearPieceAt (gamePieces);
 			GainManaAt (gamePieces);
+            piecePopSound.Play();
 
-			yield return new WaitForSeconds(0.25f);
+			yield return new WaitForSeconds(collapseTime);
 
 			movingPieces = CollapseColumn(gamePieces);
 			while (!IsCollapsed(movingPieces))

@@ -11,12 +11,19 @@ public class Base : MonoBehaviour
 
 	[HideInInspector] public float health;
 	[HideInInspector] public bool destroyed;
+    [HideInInspector] public SpriteRenderer spriteRend;
+    [HideInInspector] public Color spriteDefaultColor;
 
-	void Start ()
+    void Awake ()
+    {
+        spriteRend = GetComponent<SpriteRenderer>();
+    }
+
+    void Start ()
 	{
 		health = maxHealth;
 		healthBar.value = health / 100f;
-
 		destroyed = false;
+        spriteDefaultColor = spriteRend.color;
 	}
 }
